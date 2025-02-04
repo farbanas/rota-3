@@ -1,6 +1,8 @@
 **Here you can check all the code explanation.**
 
-Absolutely, I'll walk you through the changes made to implement the ability to create multiple rotations and ensure that the active member is persisted across page reloads. Let's break it down step-by-step.
+### **Project Overview: Rotation Management Application**
+
+This project is a Rotation Management Application built using Next.js and React. The application allows users to create multiple rotation lists, add and remove members from each rotation, and manage the active member in each rotation. Additionally, the active member is persisted across page reloads using `localStorage`. Below is a detailed explanation of each component, file, and step involved in the project setup and deployment.
 
 ### **1. Project Initialization**
 
@@ -10,8 +12,8 @@ cd rotation-app
 ```
 
 **Explanation:**
-- **npx create-next-app@latest rotation-app:** This command initializes a new Next.js application named "rotation-app".
-- **cd rotation-app:** Changes the current directory to the newly created project folder.
+- `npx create-next-app@latest rotation-app`: Initializes a new Next.js application named "rotation-app".
+- `cd rotation-app`: Changes the current directory to the newly created project folder.
 
 **Importance:**
 - Setting up a new project using `create-next-app` ensures that all necessary configurations and dependencies are set up correctly. It provides a quick start with a pre-configured Next.js environment.
@@ -188,52 +190,49 @@ const MyApp = () => {
   useEffect(() => {
     const savedRotations = JSON.parse(localStorage.getItem('rotations'));
     if (savedRotations) {
-      setRotations(savedRotations);
-      setActiveRotationIndex(0); // Set the active rotation to the first one
+      setRotations(savedRotations.rotations);
+      setActiveRotationIndex(savedRotations.activeRotationIndex);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('rotations', JSON.stringify(rotations));
-  }, [rotations]);
+    localStorage.setItem('rotations', JSON.stringify({ rotations, activeRotationIndex }));
+  }, [rotations, activeRotationIndex]);
 
   const addRotation = () => {
-    const newRotations = [...rotations];
-    newRotations.push([]); // Initialize a new rotation as an empty array
+    const newRotations = [...rotations, []];
     setRotations(newRotations);
     setActiveRotationIndex(newRotations.length - 1);
   };
 
   const addMember = (member, rotationIndex) => {
     const newRotations = [...rotations];
-    newRotations[rotationIndex].push(member);
+    newRotations[rotationIndex] = [...newRotations[rotationIndex], member];
     setRotations(newRotations);
   };
 
   const removeMember = (index, rotationIndex) => {
-    let newRotations = [...rotations];
-    let newRotation = [...newRotations[rotationIndex]];
-    newRotation.splice(index, 1);
-    newRotations[rotationIndex] = newRotation;
+    const newRotations = [...rotations];
+    newRotations[rotationIndex] = newRotations[rotationIndex].filter((_, i) => i !== index);
     setRotations(newRotations);
   };
 
-  const increaseIndex = () => {
-    let newRotations = [...rotations];
-    let newRotation = [...newRotations[activeRotationIndex]];
-    let newIndex = (newRotation.length + activeRotationIndex - 1) % newRotation.length;
-    newRotation = newRotation.map((member, i) => i === newIndex ? newRotation[0] : member);
-    newRotations[activeRotationIndex] = newRotation;
-    setRotations(newRotations);
+  const increaseIndex = (rotationIndex) => {
+    const newIndex = (rotationIndex + 1) % rotations[rotationIndex].length;
+    if (newIndex !== 0) {
+      const newRotations = [...rotations];
+      newRotations[rotationIndex] = rotations[rotationIndex].slice(newIndex).concat(rotations[rotationIndex].slice(0, newIndex));
+      setRotations(newRotations);
+    }
   };
 
-  const decreaseIndex = () => {
-    let newRotations = [...rotations];
-    let newRotation = [...newRotations[activeRotationIndex]];
-    let newIndex = (activeRotationIndex + 1) % newRotation.length;
-    newRotation = newRotation.map((member, i) => i === newIndex ? newRotation[0] : member);
-    newRotations[activeRotationIndex] = newRotation;
-    setRotations(newRotations);
+  const decreaseIndex = (rotationIndex) => {
+    const newIndex = (rotationIndex - 1 + rotations[rotationIndex].length) % rotations[rotationIndex].length;
+    if (newIndex !== rotations[rotationIndex].length - 1) {
+      const newRotations = [...rotations];
+      newRotations[rotationIndex] = rotations[rotationIndex].slice(newIndex).concat(rotations[rotationIndex].slice(0, newIndex));
+      setRotations(newRotations);
+    }
   };
 
   const setActiveRotation = (index) => {
@@ -252,10 +251,10 @@ const MyApp = () => {
             removeMember={(index) => removeMember(index, rotationIndex)}
             members={rotation}
           />
-          <RotationList members={rotation} activeIndex={0} />
+          <RotationList members={rotation} activeIndex={rotation.indexOf(rotation[activeRotationIndex])} />
           <RotationManager
-            increaseIndex={increaseIndex}
-            decreaseIndex={decreaseIndex}
+            increaseIndex={() => increaseIndex(rotationIndex)}
+            decreaseIndex={() => decreaseIndex(rotationIndex)}
             hasMembers={rotation.length > 0}
           />
           <button onClick={() => setActiveRotation(rotationIndex)} style={{ marginTop: '10px' }}>Activate</button>
@@ -362,6 +361,7 @@ npm run start
 - Build and start scripts are run automatically by Vercel when you deploy the project.
 
 #### `git init`
+
 ```bash
 git init
 ```
