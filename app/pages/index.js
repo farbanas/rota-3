@@ -23,7 +23,7 @@ const MyApp = () => {
   };
 
   const removeMember = (index) => {
-    const newMembers = members.filter((_, i) => i !== index);
+   const newMembers = members.filter((_, i) => i !== index);
     setMembers(newMembers);
   };
 
