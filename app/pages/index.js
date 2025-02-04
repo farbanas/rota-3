@@ -4,51 +4,82 @@ import RotationList from '../components/RotationList';
 import RotationManager from '../components/RotationManager';
 
 const MyApp = () => {
-  const [members, setMembers] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [rotations, setRotations] = useState([]);
+  const [activeRotationIndex, setActiveRotationIndex] = useState(0);
 
   useEffect(() => {
-    const savedMembers = JSON.parse(localStorage.getItem('rotationMembers'));
-    if (savedMembers) {
-      setMembers(savedMembers);
+    const savedRotations = JSON.parse(localStorage.getItem('rotations'));
+    if (savedRotations) {
+      setRotations(savedRotations.rotations);
+      setActiveRotationIndex(savedRotations.activeRotationIndex);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('rotationMembers', JSON.stringify(members));
-  }, [members]);
+    localStorage.setItem('rotations', JSON.stringify({ rotations, activeRotationIndex }));
+  }, [rotations, activeRotationIndex]);
 
-  const addMember = (member) => {
-    setMembers([...members, member]);
+  const addRotation = () => {
+    const newRotations = [...rotations, []];
+    setRotations(newRotations);
+    setActiveRotationIndex(newRotations.length - 1);
   };
 
-  const removeMember = (index) => {
-   const newMembers = members.filter((_, i) => i !== index);
-    setMembers(newMembers);
+  const addMember = (member, rotationIndex) => {
+    const newRotations = [...rotations];
+    newRotations[rotationIndex] = [...newRotations[rotationIndex], member];
+    setRotations(newRotations);
   };
 
-  const increaseIndex = () => {
-    setActiveIndex((prev) => (prev + 1) % members.length);
+  const removeMember = (index, rotationIndex) => {
+    const newRotations = [...rotations];
+    newRotations[rotationIndex] = newRotations[rotationIndex].filter((_, i) => i !== index);
+    setRotations(newRotations);
   };
 
-  const decreaseIndex = () => {
-    setActiveIndex((prev) => (prev - 1 + members.length) % members.length);
+  const increaseIndex = (rotationIndex) => {
+    const newIndex = (rotationIndex + 1) % rotations[rotationIndex].length;
+    if (newIndex !== 0) {
+      const newRotations = [...rotations];
+      newRotations[rotationIndex] = rotations[rotationIndex].slice(newIndex).concat(rotations[rotationIndex].slice(0, newIndex));
+      setRotations(newRotations);
+    }
+  };
+
+  const decreaseIndex = (rotationIndex) => {
+    const newIndex = (rotationIndex - 1 + rotations[rotationIndex].length) % rotations[rotationIndex].length;
+    if (newIndex !== rotations[rotationIndex].length - 1) {
+      const newRotations = [...rotations];
+      newRotations[rotationIndex] = rotations[rotationIndex].slice(newIndex).concat(rotations[rotationIndex].slice(0, newIndex));
+      setRotations(newRotations);
+    }
+  };
+
+  const setActiveRotation = (index) => {
+    setActiveRotationIndex(index);
   };
 
   return (
     <div>
       <h1>Rotation Management App</h1>
-      <RotationInput
-        addMember={addMember}
-        removeMember={removeMember}
-        members={members}
-      />
-      <RotationList members={members} activeIndex={activeIndex} />
-      <RotationManager
-        increaseIndex={increaseIndex}
-        decreaseIndex={decreaseIndex}
-        hasMembers={members.length > 0}
-      />
+      <button onClick={addRotation} disabled={rotations.length >= 5}>Add New Rotation</button> {/* Limit to 5 rotations for simplicity */}
+      {rotations.map((rotation, rotationIndex) => (
+        <div key={rotationIndex} style={{ marginBottom: '20px' }}>
+          <h2>Rotation {rotationIndex + 1}</h2>
+          <RotationInput
+            addMember={(member) => addMember(member, rotationIndex)}
+            removeMember={(index) => removeMember(index, rotationIndex)}
+            members={rotation}
+          />
+          <RotationList members={rotation} activeIndex={rotation.indexOf(rotation[activeRotationIndex])} />
+          <RotationManager
+            increaseIndex={() => increaseIndex(rotationIndex)}
+            decreaseIndex={() => decreaseIndex(rotationIndex)}
+            hasMembers={rotation.length > 0}
+          />
+          <button onClick={() => setActiveRotation(rotationIndex)} style={{ marginTop: '10px' }}>Activate</button>
+        </div>
+      ))}
     </div>
   );
 };
